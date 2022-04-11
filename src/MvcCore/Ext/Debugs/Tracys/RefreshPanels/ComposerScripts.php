@@ -43,10 +43,16 @@ class ComposerScripts {
 			var_dump([$sysOut, $code]);
 			// windows: ['', 0]
 		}
-
+		
 		list($sysOut, $code) = static::system("npm -v");
-		var_dump([$sysOut, $code]);
-
+		if ($code !== 0) {
+			$cmd = $isWin
+				? "where npm"
+				: "which npm";
+			list($sysOut, $code) = static::system();
+			var_dump([$sysOut, $code]);
+		}
+		
 		$cmd = $isWin
 			? "call npm install"
 			: "npm install";
