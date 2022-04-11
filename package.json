@@ -1,8 +1,5 @@
 {
   "dependencies": {
-    "chokidar": "^3.5.3",
-    "tslib": "^2.3.1",
-    "web-dev-server": "^3.0.27",
-    "ws": "^8.5.0"
+    "@mvccore/ext-debug-tracy-refresh-js": "^5.0"
   }
 }

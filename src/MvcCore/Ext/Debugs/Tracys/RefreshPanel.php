@@ -27,6 +27,11 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	 */
 	const VERSION = '5.0.0';
 
+	/**
+	 * Relative path to Client.js and Server.js in node_modules directory.
+	 * @var string
+	 */
+	const JS_NODE_MODULE_PATH = '/../../../../../node_modules/@mvccore/ext-debug-tracy-refresh-js/build';
 
 	/**
 	 * System config path to record in `[debug]` section 
@@ -130,33 +135,6 @@ class RefreshPanel implements \Tracy\IBarPanel {
 		return static::$sysConfigProps = $sysConfigProps;
 	}
 
-	public static function ComposerPostInstall (\Composer\Installer\PackageEvent $event) {
-		//$isWin = static::isWin();
-		$repoName = $event->getRepoName();
-		$projectDir = str_replace('\\', '/', dirname($event->getComposer()->getConfig()->get('vendor-dir')));
-		file_put_contents(__DIR__ . '/test.html', $projectDir."|".$repoName);
-
-		/*
-		mkdir js
-		git clone https://github.com/mvccore/ext-debug-tracy-refresh-js.git js
-
-		sleep(1)
-		cd ./js
-
-		npm install --dev
-		sleep(1)
-
-		npm run build
-		sleep(1)
-
-		echo "
-		Installing and building finished.
-		"
-
-		read -n1 -r -p "Press any key to continue..." key
-		*/
-	}
-
 	public function __construct () {
 		$app = \MvcCore\Application::GetInstance();
 		if (
@@ -189,7 +167,7 @@ class RefreshPanel implements \Tracy\IBarPanel {
 		} else {
 			try {
 				$this->initCtorPort();
-				$jsDir = str_replace('\\', '/', __DIR__) . '/js';
+				$jsDir = $this->getJsDirFullPath();
 				$nodeExecFullPath = static::getNodeExecutableFullPath();
 				$nodeExecFullPath = str_replace('\\', '/', $nodeExecFullPath);
 				$nodeDirFullPath = str_replace('\\', '/', dirname($nodeExecFullPath));
@@ -349,6 +327,10 @@ class RefreshPanel implements \Tracy\IBarPanel {
 		$this->nonceAttr = $nonce ? ' nonce="' . \Tracy\Helpers::escapeHtml($nonce) . '"' : '';
 	}
 
+	/**
+	 * Return `TRUE` for Windows operating systems.
+	 * @return bool
+	 */
 	protected static function isWin () {
 		return mb_substr(mb_strtolower(PHP_OS), 0, 3) === 'win';
 	}
@@ -407,6 +389,14 @@ class RefreshPanel implements \Tracy\IBarPanel {
 			"Try to add into your system config.ini section [debug] with this line: \n".
 			"`refresh.node = \"/your/custom/path/to/node\"`"
 		);
+	}
+
+	/**
+	 * Return absolute path to Client.js and Server.js in node_modules directory.
+	 * @return string
+	 */
+	protected function getJsDirFullPath () {
+		return str_replace('\\', '/', realpath(__DIR__ . static::JS_NODE_MODULE_PATH));
 	}
 
 	/**
