@@ -18,20 +18,48 @@ namespace MvcCore\Ext\Debugs\Tracys\RefreshPanels;
  */
 class ComposerScripts {
 	
-	public static function PostInstall (\Composer\Script\Event $event) {
-		static::process($event->getComposer());
-	}
-	public static function PostUpdate (\Composer\Script\Event $event) {
-		static::process($event->getComposer());
-	}
-	public static function PostPackageInstall (\Composer\Installer\PackageEvent $event) {
-		static::process($event->getComposer());
-	}
-	public static function PostPackageUpdate (\Composer\Installer\PackageEvent $event) {
+	/**
+	 * Occurs after the install command has been executed with a lock file present.
+	 * @param \Composer\Script\Event $event 
+	 * @return void
+	 */
+	public static function PostInstall ($event) {
 		static::process($event->getComposer());
 	}
 
-	protected static function process (\Composer\Composer $composer) {
+	/**
+	 * Occurs after the update command has been executed, or after the install command has been executed without a lock file present.
+	 * @param \Composer\Script\Event $event 
+	 * @return void
+	 */
+	public static function PostUpdate ($event) {
+		static::process($event->getComposer());
+	}
+
+	/**
+	 * Occurs after a package has been installed.
+	 * @param \Composer\Installer\PackageEvent $event 
+	 * @return void
+	 */
+	public static function PostPackageInstall ($event) {
+		static::process($event->getComposer());
+	}
+
+	/**
+	 * Occurs after a package has been updated.
+	 * @param \Composer\Installer\PackageEvent $event 
+	 * @return void
+	 */
+	public static function PostPackageUpdate ($event) {
+		static::process($event->getComposer());
+	}
+
+	/**
+	 * Remove previous npm code and install fresh content.
+	 * @param  \Composer\Composer $composer 
+	 * @return void
+	 */
+	protected static function process ($composer) {
 		$projectDir = dirname($composer->getConfig()->get('vendor-dir'));
 		$nodeModulesDirFp = $projectDir . DIRECTORY_SEPARATOR . 'node_modules';
 		$packageLockFp = $projectDir . DIRECTORY_SEPARATOR . 'package-lock.json';
