@@ -26,72 +26,288 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	 * @see http://php.net/manual/en/function.version-compare.php
 	 */
 	const VERSION = '5.0.0';
-	
+
+
 	/**
-	 * Query type keywords to match.
+	 * System config path to record in `[debug]` section 
+	 * for Node.JS websocket server port, default 
+	 * Node.JS websocket server port and Node.JS executable
+	 * full path (including node.exe).
 	 * @var array
 	 */
-	protected static $queryTypesKeywords = [
-		1	=> ' select ',
-		2	=> ' insert ',
-		4	=> ' update ',
-		8	=> ' delete ',
-		16	=> ' truncate ',
-		32	=> ' create ',
-		64	=> ' alter ',
-		128	=> ' drop ',
+	protected static $sysConfigProps = [
+		'portPath'		=> 'refresh.port',
+		'nodePath'		=> 'refresh.node',
+		'portDefault'	=> 9006,
 	];
 
 	/**
-	 * Query type background colors.
-	 * @var array
+	 * MvcCore CSP policy tool full class name.
+	 * @var string
 	 */
-	protected static $queryTypesColors = [
-		1	=> 'transparent',	// select
-		2	=> '#cbffcb',		// insert
-		4	=> '#ffe7a3',		// update
-		8	=> '#ffcbd3',		// delete
-		16	=> '#ffcbd3',		// truncate
-		32	=> '#e6bfff',		// create
-		64	=> '#f16183',		// alter
-		128	=> '#bcceff',		// drop
-	];
+	protected static $cspFullClassName = '\\MvcCore\\Ext\\Tools\\Csp';
+
+	/**
+	 * JS XMLHttpRequest GET param name to start background 
+	 * process with Node.JS WebSocket server to monitor file changes.
+	 * @var string
+	 */
+	protected static $xhrStartMonitoringParamName = '_tracy_panel_refresh_start';
+
 
 	/**
 	 * Unique panel id.
 	 * @var string|NULL
 	 */
-	protected $panelId = NULL;
+	protected $panelUniqueId = NULL;
 
 	/**
-	 * Rendered queires for template.
-	 * @var array|NULL
+	 * Boolean `TRUE` if request is standard html GET output, 
+	 * not AJAX, not a redirect, not POST or HEAD, etc...
+	 * @var bool
 	 */
-	protected $queries = NULL;
+	protected $active = FALSE;
 
 	/**
-	 * Executed queries count.
-	 * @var int
+	 * Node.JS websocket server port.
+	 * @var int|NULL
 	 */
-	protected $queriesCount = 0;
+	protected $port = NULL;
 
 	/**
-	 * Executed queries total time.
-	 * @var float
+	 * Application root dir.
+	 * @var string
 	 */
-	protected $queriesTime = 0.0;
-	
+	protected $appRoot;
+
+	/**
+	 * Default locations to monitor filesystem changes.
+	 * @var \string[]
+	 */
+	protected $defaultLocations = [];
+
+	/**
+	 * Default exclude patterns.
+	 * @var \string[]
+	 */
+	protected $defaultEcludePatterns = [
+		'/.*\\/\\.(git|hg|svn|vs)/g',
+		'~/Var',
+		'~/vendor',
+	];
+
+	/**
+	 * Default file extensions.
+	 * @var \string[][]
+	 */
+	protected $defaultExtensions = [
+		['php','phtml',],
+		['ini','yaml','json',],
+		['js','css',],
+		['jpg','png','gif','svg',]
+	];
+
 	/**
 	 * Debug code for this panel, printed at panel bottom.
 	 * @var string
 	 */
 	protected $debugCode = '';
+	
+	/**
+	 * Assets CSP nonce attribute for web debugging.
+	 * @var string
+	 */
+	protected $nonceAttr = '';
+
+	/**
+	 * Set system config path to record in `[debug]` section 
+	 * for Node.JS websocket server port and default 
+	 * Node.JS websocket server port.
+	 * @param  array $sysConfigProps 
+	 * @return array
+	 */
+	public static function SetSysConfigProps (array $sysConfigProps) {
+		return static::$sysConfigProps = $sysConfigProps;
+	}
+
+	public static function ComposerPostInstall (\Composer\Installer\PackageEvent $event) {
+		$isWin = static::isWin();
+
+		$cfg = $event->getComposer()->getConfig();
+		var_dump($cfg);
+
+		/*
+		mkdir js
+		git clone https://github.com/mvccore/ext-debug-tracy-refresh-js.git js
+
+		sleep(1)
+		cd ./js
+
+		npm install --dev
+		sleep(1)
+
+		npm run build
+		sleep(1)
+
+		echo "
+		Installing and building finished.
+		"
+
+		read -n1 -r -p "Press any key to continue..." key
+		*/
+	}
+
+	public function __construct () {
+		$app = \MvcCore\Application::GetInstance();
+		if (
+			isset($_GET[static::$xhrStartMonitoringParamName]) &&
+			$app->GetRequest()->GetMethod() === \MvcCore\IRequest::METHOD_POST
+		) {
+			$this->initWsServer($app);
+		} else {
+			$app->AddPreSentHeadersHandler(
+				function (\MvcCore\IRequest $req, \MvcCore\IResponse $res) {
+					$this->initCtor($req, $res);
+				}, PHP_INT_MAX
+			);
+		}
+	}
+
+	/**
+	 * Start Node.JS WebSocket server to monitor file 
+	 * changes and send JSON response about it.
+	 * @param  \MvcCore\IApplication $app
+	 * @return void
+	 */
+	protected function initWsServer (\MvcCore\IApplication $app) {
+		\Tracy\Debugger::enable(TRUE);
+		if (!\MvcCore\Debug::GetDebugging()) {
+			$result = [
+				'success'	=> FALSE,
+				'message'	=> 'Debugging is not enabled.',
+			];
+		} else {
+			try {
+				$this->initCtorPort();
+				$jsDir = str_replace('\\', '/', __DIR__) . '/js';
+				$nodeExecFullPath = static::getNodeExecutableFullPath();
+				$nodeExecFullPath = str_replace('\\', '/', $nodeExecFullPath);
+				$nodeDirFullPath = str_replace('\\', '/', dirname($nodeExecFullPath));
+				list($sysOutput, $code) = static::system($nodeExecFullPath . ' -v', $jsDir);
+				if ($code !== 0 || !preg_match("#^v\d+\.\d+\.\d+$#", $sysOutput)) 
+					throw new \Exception($sysOutput);
+				$nodeVersion = preg_replace("#[^\d\.]#", '', $sysOutput);
+				if (version_compare($nodeVersion, '10.0.0', '<'))
+					throw new \Exception("Node version is too old: {$sysOutput}, min. required version is 10.0.0.");
+				list($sysOutput, $code) = static::system(
+					$nodeExecFullPath . ' -e "'
+						.'var subprocess=require(\'child_process\')'
+							.'.spawn('
+								.'\''.$nodeExecFullPath.'\','
+								.'[\''.$jsDir.'/Server.js\','.$this->port.'],'
+								.'{detached:true,stdio:\'ignore\',cwd:\''.$nodeDirFullPath.'\'}'
+							.');'
+						.'subprocess.unref();'
+						.'console.log(1);"',
+					$jsDir
+				);
+				if ($code !== 0) 
+					throw new \Exception($sysOutput);
+				$result = [
+					'success'	=> TRUE,
+					'message'	=> $sysOutput === '1'
+						? 'WebSocket server has been started.'
+						: $sysOutput,
+				];
+			} catch (\Throwable $e) {
+				$result = [
+					'success'	=> FALSE,
+					'message'	=> $e->getMessage(),
+				];
+			}
+		}
+		header('Content-Type: application/json');
+		echo \MvcCore\Tool::JsonEncode($result);
+		if (ob_get_level())
+			ob_end_flush();
+		flush();
+		die();
+	}
+	
+	/**
+	 * Initialize necesary panel properties before http headers are sent.
+	 * @param  \MvcCore\IRequest  $req 
+	 * @param  \MvcCore\IResponse $res 
+	 * @return void
+	 */
+	protected function initCtor (\MvcCore\IRequest $req, \MvcCore\IResponse $res) {
+		$this->active = (
+			$req->GetMethod() === \MvcCore\IRequest::METHOD_GET && 
+			$res->GetHeader('Location') === NULL &&
+			!$req->IsAjax()
+		);
+		if (!$this->active) return;
+		$this->initCtorPort();
+		$this->initCtorCsp($req, $res);
+	}
+	
+	/**
+	 * Initialize Node.JS websocket server port from config or with default value. 
+	 * @return void
+	 */
+	protected function initCtorPort () {
+		$sysCfg = \MvcCore\Debug::GetSystemCfgDebugSection();
+		$cfgPortPathSegments = explode('.', static::$sysConfigProps['portPath']);
+		$cfgPortPathSegmentsCount = count($cfgPortPathSegments);
+		foreach ($cfgPortPathSegments as $index => $cfgPortPathSegment) {
+			if (!isset($sysCfg->{$cfgPortPathSegment})) 
+				break;
+			if ($index + 1 === $cfgPortPathSegmentsCount) {
+				$this->port = $sysCfg->{$cfgPortPathSegment};
+			} else {
+				$sysCfg = $sysCfg->{$cfgPortPathSegment};
+			}
+		}
+		if ($this->port === NULL)
+			$this->port = static::$sysConfigProps['portDefault'];
+	}
+
+	/**
+	 * Initialize content security policy (if necessary)
+	 * for Node.JS web socket server address.
+	 * @param  \MvcCore\IRequest  $req 
+	 * @param  \MvcCore\IResponse $res 
+	 * @return void
+	 */
+	protected function initCtorCsp (\MvcCore\IRequest $req, \MvcCore\IResponse $res) {
+		$cpsClass = static::$cspFullClassName;
+		$wsUrl = $this->getWsUrl($req, FALSE);
+		if (!class_exists($cpsClass)) {
+			/** @var \MvcCore\Ext\Tools\Csp $csp */
+			$csp = $cpsClass::GetInstance();
+			$csp->AllowHosts($csp::FETCH_CONNECT_SRC, [$wsUrl]);
+			$res->SetHeader($csp->GetHeaderName(), $csp->GetHeaderValue());
+		} else {
+			$cspHeaderName = 'Content-Security-Policy';
+			$rawHeaderValue = " ".trim($res->GetHeader($cspHeaderName))." ";
+			$sections = ['connect', 'default'];
+			foreach ($sections as $section) {
+				if (preg_match_all("#^(.*)([\s;]+)({$section}\-src)(\s+)(.*)$#i", $rawHeaderValue, $sectionMatches)) {
+					array_shift($sectionMatches);
+					$sectionMatches = array_map(function ($item) { return $item[0]; }, $sectionMatches);
+					$sectionMatches[3] = " $wsUrl ";
+					$res->SetHeader($cspHeaderName, trim(implode("", $sectionMatches)));
+					break;
+				}
+			}
+		}
+	}
 
 	/**
 	 * Get unique `Tracy` debug bar panel id.
 	 * @return string
 	 */
-	public function getId() {
+	public function getId () {
 		return 'refresh-panel';
 	}
 
@@ -99,8 +315,9 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	 * Return rendered debug panel heading HTML code displayed all time in `Tracy` debug  bar.
 	 * @return string
 	 */
-	public function getTab() {
-		$this->prepareQueriesData();
+	public function getTab () {
+		if (!$this->active) return '';
+		$this->initPanel();
 		ob_start();
 		include(__DIR__ . '/refresh.tab.phtml');
 		return ob_get_clean();
@@ -110,9 +327,9 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	 * Return rendered debug panel content window HTML code.
 	 * @return string
 	 */
-	public function getPanel() {
-		$this->prepareQueriesData();
-		if ($this->queriesCount === 0) return $this->debugCode;
+	public function getPanel () {
+		if (!$this->active) return '';
+		$this->initPanel();
 		ob_start();
 		include(__DIR__ . '/refresh.panel.phtml');
 		return ob_get_clean();
@@ -122,223 +339,87 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	 * Prepare view data for rendering.
 	 * @return void
 	 */
-	protected function prepareQueriesData () {
-		if ($this->queries !== NULL) return;
-		$this->queries = [];
-		$this->panelId = number_format(microtime(TRUE), 6, '', '');
-		$dbDebugger = $this->prepareGetAttachedDebugger();
-		if ($dbDebugger === NULL) return;
-		$sysConfProps = \MvcCore\Model::GetSysConfigProperties();
-		$store = & $dbDebugger->GetStore();
-		$appRoot = \MvcCore\Application::GetInstance()->GetRequest()->GetAppRoot();
-		$appRootLen = mb_strlen($appRoot);
-		$datetimeFormat = 'H:i:s.';
-		foreach ($store as $item) {
-			$connection = $item->connection;
-			$connConfig = $connection->GetConfig();
-			list(
-				$dumpSuccess, $queryWithValues
-			) = \MvcCore\Ext\Models\Db\Connection::DumpQueryWithParams(
-				$connection->GetProvider(), $item->query, $item->params
-			);
-			$query = $dumpSuccess ? $queryWithValues : $item->query;
-			$preparedStack = $this->prepareStackData($item->stack, $appRoot, $appRootLen);
-			$execMsTimestamp = $item->resTime - $item->reqTime;
-			$reqTimestampInt = intval(floor($item->reqTime));
-			$resTimestampInt = intval(floor($item->resTime));
-			$reqDateTimeStr = date($datetimeFormat, $reqTimestampInt);
-			$resDateTimeStr = date($datetimeFormat, $resTimestampInt);
-			$reqDatetimeMs = intval(round(($item->reqTime - floatval($reqTimestampInt)) * 1000000));
-			$resDatetimeMs = intval(round(($item->resTime - floatval($resTimestampInt)) * 1000000));
-			$this->queries[] = (object) [
-				'query'		=> $this->prepareFormatedQuery($query),
-				'type'		=> $this->prepareQueryType($query),
-				'params'	=> $dumpSuccess ? NULL : $item->params,
-				'reqTime'	=> $reqDateTimeStr . $reqDatetimeMs,
-				'resTime'	=> $resDateTimeStr . $resDatetimeMs,
-				'exec'		=> $execMsTimestamp,
-				'execMili'	=> $execMsTimestamp * 1000,
-				'stack'		=> $preparedStack,
-				'connection'=> $connConfig->{$sysConfProps->name},
-				'hash'		=> $this->hashQuery($item, $preparedStack),
-			];
-			$this->queriesTime += $execMsTimestamp;
-		}
-		$this->queriesCount = count($this->queries);
-		$this->queriesTime = $this->queriesTime;
-		$dbDebugger->Dispose();
+	protected function initPanel () {
+		if ($this->panelUniqueId !== NULL) return;
+		$this->panelUniqueId = number_format(microtime(TRUE), 6, '', '');
+		$req = \MvcCore\Application::GetInstance()->GetRequest();
+		$this->appRoot = $req->GetAppRoot();
+		$this->defaultLocations[] = $this->appRoot;
+		$nonce = \Tracy\Helpers::getNonce();
+		$this->nonceAttr = $nonce ? ' nonce="' . \Tracy\Helpers::escapeHtml($nonce) . '"' : '';
+	}
+
+	protected static function isWin () {
+		return mb_substr(mb_strtolower(PHP_OS), 0, 3) === 'win';
 	}
 
 	/**
-	 * Trim query and cut minimum whitespaces in each line.
-	 * @param  string $rawQuery 
+	 * Get system command output code and stdout.
+	 * @param  string      $cmd 
+	 * @param  string|NULL $dirPath 
+	 * @return [string, int]
+	 */
+	protected static function system ($cmd, $dirPath = NULL) {
+		if (!function_exists('system')) 
+			throw new \Exception('Function `system` is not allowed.');
+		$dirPathPresented = $dirPath !== NULL && mb_strlen($dirPath) > 0;
+		if ($dirPathPresented) {
+			$cwd = getcwd();
+			chdir($dirPath);
+		}
+		ob_start();
+		system($cmd . ' 2>&1', $code);
+		$sysOut = ob_get_clean();
+		if ($dirPathPresented) chdir($cwd);
+		return [trim($sysOut), $code];
+	}
+
+	/**
+	 * Loads Node.JS executable full path from system 
+	 * config or by `which` (`where`) system command.
+	 * @throws \Exception  There was not possible to determinate Node.JS executable full path.
 	 * @return string
 	 */
-	protected function prepareFormatedQuery ($rawQuery) {
-		$queryLines = explode("\n", str_replace(["\r", "\n\n"], ["\n", "\n"], $rawQuery));
-		$indents = [];
-		$minIndent = PHP_INT_MAX;
-		foreach ($queryLines as $index => $queryLine) {
-			$queryLineTrimmed = trim($queryLine);
-			if (mb_strlen($queryLineTrimmed) === 0) {
-				unset($queryLines[$index]);
-				continue;
-			}
-			$indent = preg_replace("#^([\t ]*).*#u", "$1", $queryLine);
-			$tabIndent = str_replace("    ", "\t", $indent);
-			$tabIndentLen = mb_strlen($tabIndent);
-			$indents[$index] = [$tabIndentLen, mb_strlen($indent)];
-			if ($tabIndentLen < $minIndent) $minIndent = $tabIndentLen;
-		}
-		if ($minIndent > 0) {
-			foreach ($queryLines as $index => $queryLine) {
-				list($tabIndent, $realIndent) = $indents[$index];
-				if ($tabIndent === $realIndent) {
-					$queryLines[$index] = mb_substr($queryLine, $minIndent);
-				} else {
-					$indentValue = str_replace("    ", "\t", mb_substr($queryLine, 0, $realIndent));
-					$queryLines[$index] = mb_substr($indentValue, $minIndent) . mb_substr($queryLine, $realIndent);
-				}
-			}
-		}
-		return implode("\n", array_values($queryLines));
-	}
-
-	/**
-	 * Return attached debugger singleton on any existing and opened connection.
-	 * @return \MvcCore\Ext\Models\Db\Debugger|NULL
-	 */
-	protected function prepareGetAttachedDebugger () {
-		$dbConfigs = \MvcCore\Model::GetConfigs();
-		$extendedConnectionFound = FALSE;
-		$dbDebugger = NULL;
-		foreach ($dbConfigs as $connectionName => $dbConfig) {
-			if (\MvcCore\Model::HasConnection($connectionName)) {
-				$conn = \MvcCore\Model::GetConnection($connectionName);
-				if ($conn instanceof \MvcCore\Ext\Models\Db\IConnection) {
-					$extendedConnectionFound = TRUE;
-					$debuggerLocal = $conn->GetDebugger();
-					if ($debuggerLocal !== NULL) {
-						$dbDebugger = $debuggerLocal;
-						if (count($debuggerLocal->GetStore()) > 0)
-							break;
-					}
-				}
-			}
-		}
-		if ($dbDebugger === NULL) {
-			$this->debugCode = !$extendedConnectionFound
-				? "No database connection found, which implements interface `\MvcCore\Ext\Models\Db\IConnection`."
-				: "No configured debugger found on any database connection.";
-			return NULL;
-		}
-		return $dbDebugger;
-	}
-
-	/**
-	 * Prepare query type by matched keywords.
-	 * @param  string $query 
-	 * @return int
-	 */
-	protected function prepareQueryType ($query) {
-		$queryType = 0;
-		$queryWithSingleSpace = ' '.preg_replace("#\s+#", ' ', str_replace(';', ' ; ', $query)).' ';
-		foreach (static::$queryTypesKeywords as $queryTypeFlag => $queryTypeKeyword) 
-			if (stripos($queryWithSingleSpace, $queryTypeKeyword) !== FALSE) 
-				$queryType |= $queryTypeFlag;
-		return $queryType;
-	}
-
-	/**
-	 * Prepare code for stack trace rendering.
-	 * @param  array  $stack 
-	 * @param  string $appRoot 
-	 * @param  int    $appRootLen 
-	 * @return \string[][]
-	 */
-	protected function prepareStackData (array $stack, $appRoot, $appRootLen) {
-		$result = [];
-		foreach ($stack as $stackItem) {
-			$file = NULL;
-			$line = NULL;
-			$class = NULL;
-			$func = NULL;
-			$callType = '';
-			if (isset($stackItem['file']))
-				$file = str_replace('\\', '/', $stackItem['file']);
-			if (isset($stackItem['line']))
-				$line = $stackItem['line'];
-			if (isset($stackItem['class']))
-				$class = $stackItem['class'];
-			if (isset($stackItem['function']))
-				$func = $stackItem['function'];
-			if (isset($stackItem['type']))
-				$callType = str_replace('-', '&#8209;', $stackItem['type']);
-			if ($func !== NULL && $file !== NULL && $line !== NULL) {
-				$visibleFilePath = $this->getVisibleFilePath($file, $appRoot, $appRootLen);
-				$phpCode = $class !== NULL
-					? $class . $callType . $func . '();'
-					: $func . '();';
-				$link = \Tracy\Helpers::editorUri($file, $line);
-				$result[] = [
-					'<a title="'.$file.':'.$line.'" href="'.$link.'">'.$visibleFilePath.':'.$line.'</a>',
-					$phpCode
-				];
+	protected static function getNodeExecutableFullPath () {
+		$nodePath = NULL;
+		$sysCfg = \MvcCore\Debug::GetSystemCfgDebugSection();
+		$cfgNodePathSegments = explode('.', static::$sysConfigProps['nodePath']);
+		$cfgNodePathSegmentsCount = count($cfgNodePathSegments);
+		foreach ($cfgNodePathSegments as $index => $cfgNodePathSegment) {
+			if (!isset($sysCfg->{$cfgNodePathSegment})) 
+				break;
+			if ($index + 1 === $cfgNodePathSegmentsCount) {
+				$nodePath = $sysCfg->{$cfgNodePathSegment};
 			} else {
-				$result[] = [
-					NULL,
-					$class !== NULL
-						? $class . $callType . $func . '();'
-						: $func . '();'
-				];
+				$sysCfg = $sysCfg->{$cfgNodePathSegment};
 			}
 		}
-		return $result;
+		if ($nodePath !== NULL) 
+			return $nodePath;
+		$isWin = static::isWin();
+		$whichCmd = $isWin ? 'where' : 'which';
+		$nodeCli = $isWin ? 'node.exe' : 'node';
+		list($nodePath, $code) = static::system($whichCmd.' '.$nodeCli);
+		if ($code === 0) 
+			return $nodePath;
+		throw new \Exception(
+			"There was not possible to determinate Node.JS executable full path. \n".
+			"Try to add into your system config.ini section [debug] with this line: \n".
+			"`refresh.node = \"/your/custom/path/to/node\"`"
+		);
 	}
 
 	/**
-	 * Return file path to render in link text.
-	 * If there is found application root in path, 
-	 * return only path after it, if not, return 
-	 * three dots, two parent folders and filename.
-	 * @param  string $file 
-	 * @param  string $appRoot 
-	 * @param  int    $appRootLen 
+	 * Get Node.JS websocket server url.
+	 * @param  \MvcCore\IRequest $req 
+	 * @param  bool              $httpScheme 
 	 * @return string
 	 */
-	protected function getVisibleFilePath ($file, $appRoot, $appRootLen) {
-		$result = $file;
-		if (mb_strpos($file, $appRoot) === 0) {
-			$result = mb_substr($file, $appRootLen);
-		} else {
-			$i = 0;
-			$pos = mb_strlen($file) + 1;
-			while ($i < 3) {
-				$pos = mb_strrpos(mb_substr($file, 0, $pos - 1), '/');
-				if ($pos === FALSE) break; 
-				$i++;
-			}
-			if ($pos === FALSE) {
-				$result = $file;
-			} else {
-				$result = '&hellip;'.mb_substr($file, $pos);
-			}
-		}
-		return $result;
-	}
-
-	/**
-	 * Create unique query MD5 hash.
-	 * @param  \stdClass   $item 
-	 * @param  \string[][] $preparedStack 
-	 * @return string
-	 */
-	protected function hashQuery ($item, $preparedStack) {
-		return md5(implode('', [
-			$item->query,
-			serialize($item->params),
-			serialize($preparedStack)
-		]));
+	protected function getWsUrl ($req, $httpScheme) {
+		/*$scheme = $req->GetScheme();
+		if (!$httpScheme)
+			$scheme = $scheme === 'http:' ? 'ws:' : 'wss:';*/
+		return "ws://127.0.0.1:{$this->port}/";
 	}
 
 	/**

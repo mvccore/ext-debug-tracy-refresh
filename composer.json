@@ -22,9 +22,17 @@
 		"name": "Tom Flidr",
 		"homepage": "https://github.com/tomFlidr"
 	}],
+	"scripts": {
+		"post-install-cmd": [
+			"MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanel::ComposerPostInstall"
+		],
+		"post-package-install": [
+			"MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanel::ComposerPostInstall"
+		]
+	},
 	"require": {
 		"php": ">=5.4.0",
-		"mvccore/mvccore": "^5.0.27",
+		"mvccore/mvccore": "^5.1.17",
 		"mvccore/ext-debug-tracy": "^5.0.2"
 	},
 	"autoload": {

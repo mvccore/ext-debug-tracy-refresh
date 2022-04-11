@@ -1,0 +1,33 @@
+#tracy-debug #tracy-debug-panel-refresh-panel.tracy-mode-peek, 
+#tracy-debug #tracy-debug-panel-refresh-panel.tracy-mode-float:not(.tracy-panel-resized){max-height:540px;}
+#tracy-debug .tracy-panel-refresh{overflow:hidden;width:441px;height:540px;}
+#tracy-debug .tracy-mode-float .tracy-panel-refresh,
+#tracy-debug .tracy-mode-window .tracy-panel-refresh{overflow:visible;}
+#tracy-debug .tracy-panel-refresh h1{cursor:move;overflow:hidden;}
+#tracy-debug .tracy-panel-refresh h1{padding-right:0;}
+#tracy-debug .tracy-panel-refresh h1 *{white-space:nowrap !important;}
+#tracy-debug .tracy-panel-refresh h1 .left{display:block;float:left;line-height:30px;font-size:24px;}
+#tracy-debug .tracy-panel-refresh h1 .right{display:block;float:right;line-height:16px;font-size:10px;padding-top:12px;}
+#tracy-debug .tracy-panel-refresh form.wait,
+#tracy-debug .tracy-panel-refresh form.wait label,
+#tracy-debug .tracy-panel-refresh form.wait textarea,
+#tracy-debug .tracy-panel-refresh form.wait checkbox,
+#tracy-debug .tracy-panel-refresh form.wait button{cursor:wait !important;}
+#tracy-debug .tracy-panel-refresh form{overflow:hidden;}
+#tracy-debug .tracy-panel-refresh form fieldset{border:1px solid #aaa;padding:0 10px 10px 10px;background:#fdf5ce;}
+#tracy-debug .tracy-panel-refresh form hr{border-top:1px solid #aaa;height:0;overflow:hidden;margin:0;}
+#tracy-debug .tracy-panel-refresh form fieldset legend{margin-left:-5px;padding:0 5px;}
+#tracy-debug .tracy-panel-refresh form label.block{display:block;margin-top:10px;}
+#tracy-debug .tracy-panel-refresh form textarea{display:block;border:1px solid #aaa;width:100%;padding:3px 5px;background:#fff;white-space:pre-wrap;}
+#tracy-debug .tracy-panel-refresh form div.checkbox-groups{overflow:hidden;margin-bottom:9px;}
+#tracy-debug .tracy-panel-refresh form div.checkbox-group{display:block;float:left;width:70px;}
+#tracy-debug .tracy-panel-refresh form div.checkbox{display:block;}
+#tracy-debug .tracy-panel-refresh form div.checkbox input{position:relative;top:2px;}
+#tracy-debug .tracy-panel-refresh form label.checkbox{display:inline;left:2px;}
+#tracy-debug .tracy-panel-refresh form textarea,
+#tracy-debug .tracy-panel-refresh form label.checkbox{font-family:'Consolas',Courier New;}
+#tracy-debug .tracy-panel-refresh form button{display:block;float:left;font-weight:bold;margin-top:10px;padding:5px 15px;cursor:pointer;}
+#tracy-debug .tracy-panel-refresh form button.passive{text-decoration:none;background:#fff;color:#125eae;border:1px solid #aaa;}
+#tracy-debug .tracy-panel-refresh form button[disabled]{color:#888 !important;}
+#tracy-debug .tracy-panel-refresh form button.active{background:#125eae;border:1px solid #125eae;color:#fff;text-decoration:underline;}
+#tracy-debug .tracy-panel-refresh form i.status{float:left;margin:16px 0 0 15px;color:#888;}   

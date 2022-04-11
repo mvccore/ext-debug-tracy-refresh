@@ -10,3 +10,16 @@ MvcCore Debug Tracy Extension to to automatic refresh of current browser tab on 
 ```shell
 composer require mvccore/ext-debug-tracy-refresh
 ```
+
+1.
+- na serveru se jen přenese jaká url se případně řeší	
+	- nejprve se to zjistí ze sessionStorrage
+	- pokud ano, tak se zkusí vytvořit websocket spojení, pokud dojde k chybě, že tam nic není,
+	  tak se provede ajax request pro nastartování
+	- po odpovědi se znovu udělá websocket spojení
+	- změní se ikona a inicializje form podle session storrage
+
+2. pokud klient klikne na start
+	- pokud to neběží - provede se spec. ajax na rozběhnutí, jakmile to běží, tak:
+	- připojí se to s url na server a monitoruje se to
+	- při reloadu stránky se vyřeší close a pak znovu connection
