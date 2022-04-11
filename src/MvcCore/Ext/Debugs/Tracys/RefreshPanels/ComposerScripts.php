@@ -49,7 +49,7 @@ class ComposerScripts {
 			$cmd = $isWin
 				? "where npm"
 				: "which npm";
-			list($sysOut, $code) = static::system();
+			list($sysOut, $code) = static::system($cmd);
 			var_dump([$sysOut, $code]);
 		}
 		
