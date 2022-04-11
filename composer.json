@@ -23,18 +23,10 @@
 		"homepage": "https://github.com/tomFlidr"
 	}],
 	"scripts": {
-		"post-install-cmd": [
-			"MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanels\\ComposerScripts::PostInstall"
-		],
-		"post-update-cmd": [
-			"MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanels\\ComposerScripts::PostUpdate"
-		],
-		"post-package-install": [
-			"MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanels\\ComposerScripts::PostPackageInstall"
-		],
-		"post-package-update": [
-			"MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanels\\ComposerScripts::PostPackageUpdate"
-		]
+		"post-install-cmd": "\\MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanels\\ComposerScripts::PostInstall",
+		"post-update-cmd": "\\MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanels\\ComposerScripts::PostUpdate",
+		"post-package-install": "\\MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanels\\ComposerScripts::PostPackageInstall",
+		"post-package-update": "\\MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanels\\ComposerScripts::PostPackageUpdate"
 	},
 	"require": {
 		"php": ">=5.4.0",
