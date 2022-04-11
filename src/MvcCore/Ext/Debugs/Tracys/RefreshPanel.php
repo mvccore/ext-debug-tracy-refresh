@@ -134,7 +134,12 @@ class RefreshPanel implements \Tracy\IBarPanel {
 		$isWin = static::isWin();
 
 		$cfg = $event->getComposer()->getConfig();
+		$home = $cfg->get('home');
+		ob_start();
+		echo '<pre>';
 		var_dump($cfg);
+		var_dump($home);
+		file_put_contents(__DIR__ . '/test.html', ob_get_clean());
 
 		/*
 		mkdir js
