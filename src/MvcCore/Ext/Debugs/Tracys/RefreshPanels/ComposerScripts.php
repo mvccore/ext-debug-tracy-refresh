@@ -45,6 +45,7 @@ class ComposerScripts {
 		}
 		
 		list($sysOut, $code) = static::system("npm -v");
+		var_dump([$sysOut, $code]);
 		if ($code !== 0) {
 			$cmd = $isWin
 				? "where npm"
