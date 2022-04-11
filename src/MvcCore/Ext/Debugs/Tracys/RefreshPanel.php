@@ -131,15 +131,10 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	}
 
 	public static function ComposerPostInstall (\Composer\Installer\PackageEvent $event) {
-		$isWin = static::isWin();
+		//$isWin = static::isWin();
 
-		$cfg = $event->getComposer()->getConfig();
-		$home = $cfg->get('home');
-		ob_start();
-		echo '<pre>';
-		var_dump($cfg);
-		var_dump($home);
-		file_put_contents(__DIR__ . '/test.html', ob_get_clean());
+		$projectDir = str_replace('\\', '/', dirname($event->getComposer()->getConfig()->get('vendor-dir')));
+		file_put_contents(__DIR__ . '/test.html', $projectDir);
 
 		/*
 		mkdir js
