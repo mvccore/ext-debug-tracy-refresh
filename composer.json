@@ -22,21 +22,21 @@
 		"name": "Tom Flidr",
 		"homepage": "https://github.com/tomFlidr"
 	}],
-	"scripts": {
-		"post-install-cmd": "\\MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanels\\ComposerScripts::PostInstall",
-		"post-update-cmd": "\\MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanels\\ComposerScripts::PostUpdate",
-		"post-package-install": "\\MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanels\\ComposerScripts::PostPackageInstall",
-		"post-package-update": "\\MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanels\\ComposerScripts::PostPackageUpdate"
-	},
 	"require": {
 		"php": ">=5.4.0",
 		"mvccore/mvccore": "^5.1.17",
-		"mvccore/ext-debug-tracy": "^5.0.2"
+		"mvccore/ext-debug-tracy": "^5.0.2",
+		"civicrm/composer-compile-plugin": "^0.14"
 	},
 	"autoload": {
 		"classmap": [
 			"src/"
 		]
+	},
+	"extra": {
+		"compile": [{
+			"run": "@php-method MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanels\\ComposerScripts::Run"
+		}]
 	},
 	"minimum-stability": "dev"
 }
