@@ -176,11 +176,8 @@ class Helpers {
 		}
 		if ($nodePath !== NULL) {
 			$nodePath = str_replace('\\', '/', $nodePath);
-			var_dump(["1", $nodePath]);
-			$nodeDirFullPath = rtrim('/', $nodePath);
-			var_dump(["2", $nodeDirFullPath]);
+			$nodeDirFullPath = rtrim($nodePath, '/');
 			$nodeExecFullPath = $nodeDirFullPath . '/' . $nodeCli;
-			var_dump(["result: ", [$nodeDirFullPath, $nodeExecFullPath]]);
 			return [$nodeDirFullPath, $nodeExecFullPath];
 		}
 		throw new \Exception(
