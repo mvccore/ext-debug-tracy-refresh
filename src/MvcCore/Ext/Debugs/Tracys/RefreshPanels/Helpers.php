@@ -14,7 +14,7 @@
 namespace MvcCore\Ext\Debugs\Tracys\RefreshPanels;
 
 /**
- * Responsibility - helper functions for classes RefreshPanel and ComposerScripts.
+ * Responsibility - helper functions for classes RefreshPanel and Instalation.
  */
 class Helpers {
 	
@@ -154,7 +154,7 @@ class Helpers {
 	public static function GetNodePaths () {
 		$nodePath = NULL;
 		$sysCfg = \MvcCore\Debug::GetSystemCfgDebugSection();
-		$cfgNodePathSegments = explode('.', static::GetSysConfigProp('nodePath');
+		$cfgNodePathSegments = explode('.', static::GetSysConfigProp('nodePath'));
 		$cfgNodePathSegmentsCount = count($cfgNodePathSegments);
 		foreach ($cfgNodePathSegments as $index => $cfgNodePathSegment) {
 			if (!isset($sysCfg->{$cfgNodePathSegment})) 
