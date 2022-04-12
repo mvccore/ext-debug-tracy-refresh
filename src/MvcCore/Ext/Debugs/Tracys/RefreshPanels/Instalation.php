@@ -38,7 +38,7 @@ class Instalation {
 				? "rmdir /S /Q \"{$nodeModulesDirFp}\""
 				: "rm -rf \"{$nodeModulesDirFp}\"";
 			list($sysOut, $code) = Helpers::System($cmd);
-			var_dump([$sysOut, $code]);
+			//var_dump([$sysOut, $code]);
 			// windows: ['', 0]
 		}
 		if (file_exists($packageLockFp)) {
@@ -46,12 +46,12 @@ class Instalation {
 				? "del /F /Q \"{$packageLockFp}\""
 				: "rm -f \"{$packageLockFp}\"";
 			list($sysOut, $code) = Helpers::System($cmd);
-			var_dump([$sysOut, $code]);
+			//var_dump([$sysOut, $code]);
 			// windows: ['', 0]
 		}
 		
 		list($sysOut, $code) = Helpers::System("npm -v");
-		var_dump([$sysOut, $code, $_SERVER]); 
+		var_dump([$sysOut, $code]); 
 		if ($code !== 0) {
 			$cmd = $isWin
 				? "where npm"
