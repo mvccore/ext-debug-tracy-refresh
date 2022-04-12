@@ -17,7 +17,7 @@
 <script type="text/javascript"<?php echo $this->nonceAttr; ?>>
 	var Tracy = window.Tracy || {};
 	Tracy.DebugRefreshPanel = (function(){
-		<?php include_once($this->getJsDirFullPath() . '/Client.js'); echo PHP_EOL; ?>
+		<?php include_once($this->clientJsFullPath); echo PHP_EOL; ?>
 		return DebugRefreshPanel;
 	})();
 	Tracy.DebugRefreshPanel.GetInstance(<?php echo \MvcCore\Tool::JsonEncode([
@@ -28,6 +28,6 @@
 		'defaultLocations'		=> $this->defaultLocations,
 		'defaultEcludePatterns' => $this->defaultEcludePatterns,
 		'defaultExtensions'		=> $this->defaultExtensions,
-		'startMonitoringParam'	=> static::$xhrStartMonitoringParamName,
+		'startMonitoringParam'	=> $this->startMonitoringParamName,
 	]); ?>);
 </script>

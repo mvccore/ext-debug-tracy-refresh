@@ -3,8 +3,7 @@
 #tracy-debug .tracy-panel-refresh{overflow:hidden;width:441px;height:540px;}
 #tracy-debug .tracy-mode-float .tracy-panel-refresh,
 #tracy-debug .tracy-mode-window .tracy-panel-refresh{overflow:visible;}
-#tracy-debug .tracy-panel-refresh h1{cursor:move;overflow:hidden;}
-#tracy-debug .tracy-panel-refresh h1{padding-right:0;}
+#tracy-debug .tracy-panel-refresh h1{cursor:move;overflow:hidden;width:auto;padding-right:0;}
 #tracy-debug .tracy-panel-refresh h1 *{white-space:nowrap !important;}
 #tracy-debug .tracy-panel-refresh h1 .left{display:block;float:left;line-height:30px;font-size:24px;}
 #tracy-debug .tracy-panel-refresh h1 .right{display:block;float:right;line-height:16px;font-size:10px;padding-top:12px;}

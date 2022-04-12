@@ -83,16 +83,29 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	];
 
 	/**
-	 * Debug code for this panel, printed at panel bottom.
+	 * Absolute path to Client.js in node_modules directory.
 	 * @var string
 	 */
-	protected $debugCode = '';
+	protected $clientJsFullPath;
+
+	/**
+	 * JS XMLHttpRequest GET param name to start background 
+	 * process with Node.JS WebSocket server to monitor file changes.
+	 * @var string
+	 */
+	protected $startMonitoringParamName;
 	
 	/**
 	 * Assets CSP nonce attribute for web debugging.
 	 * @var string
 	 */
 	protected $nonceAttr = '';
+
+	/**
+	 * Debug code for this panel, printed at panel bottom.
+	 * @var string
+	 */
+	protected $debugCode = '';
 
 	public function __construct () {
 		$app = \MvcCore\Application::GetInstance();
@@ -280,6 +293,8 @@ class RefreshPanel implements \Tracy\IBarPanel {
 		$req = \MvcCore\Application::GetInstance()->GetRequest();
 		$this->appRoot = $req->GetAppRoot();
 		$this->defaultLocations[] = $this->appRoot;
+		$this->clientJsFullPath = Helpers::GetJsDirFullPath() . '/Client.js';
+		$this->startMonitoringParamName = Helpers::GetXhrStartMonitoringParamName();
 		$nonce = \Tracy\Helpers::getNonce();
 		$this->nonceAttr = $nonce ? ' nonce="' . \Tracy\Helpers::escapeHtml($nonce) . '"' : '';
 	}
