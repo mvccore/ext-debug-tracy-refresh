@@ -171,15 +171,14 @@ class Helpers {
 		if ($nodePath === NULL) {
 			$whichCmd = $isWin ? 'where' : 'which';
 			list($whichNodePath, $code) = static::System($whichCmd.' '.$nodeCli);
-			var_dump(["where node: ", $code, $whichNodePath]);
-			if ($code === 0 && mb_strlen($whichNodePath) > 0) {
+			if ($code === 0 && mb_strlen($whichNodePath) > 0) 
 				$nodePath = dirname($whichNodePath);
-				var_dump(["nodePath: ", $nodePath]);
-			}
 		}
 		if ($nodePath !== NULL) {
 			$nodePath = str_replace('\\', '/', $nodePath);
+			var_dump(["1", $nodePath]);
 			$nodeDirFullPath = rtrim('/', $nodePath);
+			var_dump(["2", $nodeDirFullPath]);
 			$nodeExecFullPath = $nodeDirFullPath . '/' . $nodeCli;
 			var_dump(["result: ", [$nodeDirFullPath, $nodeExecFullPath]]);
 			return [$nodeDirFullPath, $nodeExecFullPath];
