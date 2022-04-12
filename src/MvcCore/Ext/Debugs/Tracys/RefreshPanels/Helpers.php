@@ -154,6 +154,7 @@ class Helpers {
 	public static function GetNodePaths () {
 		$nodePath = NULL;
 		$sysCfg = \MvcCore\Debug::GetSystemCfgDebugSection();
+		if ($sysCfg !== NULL)
 		$cfgNodePathSegments = explode('.', static::GetSysConfigProp('nodePath'));
 		$cfgNodePathSegmentsCount = count($cfgNodePathSegments);
 		foreach ($cfgNodePathSegments as $index => $cfgNodePathSegment) {
@@ -170,6 +171,7 @@ class Helpers {
 		if ($nodePath === NULL) {
 			$whichCmd = $isWin ? 'where' : 'which';
 			list($whichNodePath, $code) = static::System($whichCmd.' '.$nodeCli);
+			var_dump(["where node: ", $code, $whichNodePath]);
 			if ($code === 0 && mb_strlen($whichNodePath) > 0) {
 				$nodePath = dirname($whichNodePath);
 			}
