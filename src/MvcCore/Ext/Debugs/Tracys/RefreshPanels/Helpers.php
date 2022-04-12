@@ -174,12 +174,14 @@ class Helpers {
 			var_dump(["where node: ", $code, $whichNodePath]);
 			if ($code === 0 && mb_strlen($whichNodePath) > 0) {
 				$nodePath = dirname($whichNodePath);
+				var_dump(["nodePath: ", $nodePath]);
 			}
 		}
 		if ($nodePath !== NULL) {
 			$nodePath = str_replace('\\', '/', $nodePath);
 			$nodeDirFullPath = rtrim('/', $nodePath);
 			$nodeExecFullPath = $nodeDirFullPath . '/' . $nodeCli;
+			var_dump(["result: ", [$nodeDirFullPath, $nodeExecFullPath]]);
 			return [$nodeDirFullPath, $nodeExecFullPath];
 		}
 		throw new \Exception(
