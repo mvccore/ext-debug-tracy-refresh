@@ -32,7 +32,7 @@ class Instalation {
 		$projectDir = realpath(dirname(__DIR__, 6));
 		$nodeModulesDirFp = $projectDir . DIRECTORY_SEPARATOR . 'node_modules';
 		$packageLockFp = $projectDir . DIRECTORY_SEPARATOR . 'package-lock.json';
-		$isWin = Helpers::isWin();
+		$isWin = Helpers::IsWin();
 		if (is_dir($nodeModulesDirFp)) {
 			$cmd = $isWin
 				? "rmdir /S /Q \"{$nodeModulesDirFp}\""

@@ -165,12 +165,12 @@ class Helpers {
 				$sysCfg = $sysCfg->{$cfgNodePathSegment};
 			}
 		}
-		$isWin = static::isWin();
+		$isWin = static::IsWin();
 		$nodeCli = $isWin ? 'node.exe' : 'node';
 		if ($nodePath === NULL) {
 			$whichCmd = $isWin ? 'where' : 'which';
 			list($whichNodePath, $code) = static::System($whichCmd.' '.$nodeCli);
-			if ($code === 0) {
+			if ($code === 0 && mb_strlen($whichNodePath) > 0) {
 				$nodePath = dirname($whichNodePath);
 			}
 		}
@@ -201,7 +201,7 @@ class Helpers {
 	 * Return `TRUE` for Windows operating systems.
 	 * @return bool
 	 */
-	protected static function isWin () {
+	public static function IsWin () {
 		return mb_substr(mb_strtolower(PHP_OS), 0, 3) === 'win';
 	}
 	
