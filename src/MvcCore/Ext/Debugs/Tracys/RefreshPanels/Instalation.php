@@ -26,7 +26,8 @@ class Instalation {
 	 */
 	public static function Run () {
 
-		var_dump($_SERVER['SCRIPT_FILENAME']);
+		var_dump($_SERVER); // ['SCRIPT_FILENAME']
+		var_dump(defined('MVCCORE_APP_ROOT'));
 		if (!defined('MVCCORE_APP_ROOT')) {
 			define('MVCCORE_APP_ROOT', str_replace('\\', '/', dirname(__DIR__, 9)));
 		}
