@@ -11,8 +11,6 @@
  * @license		https://mvccore.github.io/docs/mvccore/5.0.0/LICENSE.md
  */
 
-define('MVCCORE_APP_ROOT', str_replace('\\', '/', dirname(__DIR__, 9)));
-
 use \MvcCore\Ext\Debugs\Tracys\RefreshPanels\Helpers;
 
 /**
@@ -23,6 +21,9 @@ call_user_func(function () {
 	
 	var_dump(defined('MVCCORE_APP_ROOT'));
 	var_dump(MVCCORE_APP_ROOT);
+
+	$req = \MvcCore\Application::GetInstance()->GetRequest();
+	$req->SetAppRoot(str_replace('\\', '/', dirname(__DIR__, 9)));
 
 	$nodePaths = Helpers::GetNodePaths();
 	var_dump($nodePaths);
