@@ -18,16 +18,9 @@ use \MvcCore\Ext\Debugs\Tracys\RefreshPanels\Helpers;
  * @return void
  */
 call_user_func(function () {
-	
-	var_dump(defined('MVCCORE_APP_ROOT'));
-	var_dump(MVCCORE_APP_ROOT);
-
-	$req = \MvcCore\Application::GetInstance()->GetRequest();
-	$req->SetAppRoot(str_replace('\\', '/', dirname(__DIR__, 9)));
-
-	$nodePaths = Helpers::GetNodePaths();
-	var_dump($nodePaths);
-
+	// Detect environment first:
+	\MvcCore\Application::GetInstance()->GetEnvironment()->GetName();
+	// If there are any previous node modules installed - remove it:
 	$projectDir = realpath(dirname(__DIR__, 6));
 	$nodeModulesDirFp = $projectDir . DIRECTORY_SEPARATOR . 'node_modules';
 	$packageLockFp = $projectDir . DIRECTORY_SEPARATOR . 'package-lock.json';
@@ -36,7 +29,9 @@ call_user_func(function () {
 		$cmd = $isWin
 			? "rmdir /S /Q \"{$nodeModulesDirFp}\""
 			: "rm -rf \"{$nodeModulesDirFp}\"";
-		list($sysOut, $code) = Helpers::System($cmd);
+		list($sysOut, $code) = Helpers::System($cmd, $projectDir);
+		if ($code !== 0)
+			throw new \Exception($sysOut);
 		//var_dump([$sysOut, $code]);
 		// windows: ['', 0]
 	}
@@ -44,25 +39,17 @@ call_user_func(function () {
 		$cmd = $isWin
 			? "del /F /Q \"{$packageLockFp}\""
 			: "rm -f \"{$packageLockFp}\"";
-		list($sysOut, $code) = Helpers::System($cmd);
+		list($sysOut, $code) = Helpers::System($cmd, $projectDir);
+		if ($code !== 0)
+			throw new \Exception($sysOut);
 		//var_dump([$sysOut, $code]);
 		// windows: ['', 0]
 	}
-	
-	list($sysOut, $code) = Helpers::System("npm -v");
-	var_dump([$sysOut, $code]); 
-	if ($code !== 0) {
-		$cmd = $isWin
-			? "where npm"
-			: "which npm";
-		list($sysOut, $code) = Helpers::System($cmd);
-		var_dump([$sysOut, $code]);
-	}
-	
-	$cmd = $isWin
-		? "call npm install"
-		: "npm install";
-	list($sysOut, $code) = Helpers::System($cmd);
-	var_dump([$sysOut, $code]);
+	// Install node modules via npm:
+	list($nodeDirFullPath) = Helpers::GetNodePaths();
+	$cmd = $nodeDirFullPath . "/npm install";
+	list($sysOut, $code) = Helpers::System($cmd, $projectDir);
+	if ($code !== 0)
+		throw new \Exception($sysOut);
 	// windows: ['added 18 packages, and audited 19 packages in 3s ... found 0 vulnerabilities', 0]
 });

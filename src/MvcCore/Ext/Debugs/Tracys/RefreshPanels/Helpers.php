@@ -154,7 +154,6 @@ class Helpers {
 	public static function GetNodePaths () {
 		$nodePath = NULL;
 		$sysCfg = \MvcCore\Debug::GetSystemCfgDebugSection();
-		var_dump(["debug cfg section", $sysCfg]);
 		if ($sysCfg !== NULL) {
 			$cfgNodePathSegments = explode('.', static::GetSysConfigProp('nodePath'));
 			$cfgNodePathSegmentsCount = count($cfgNodePathSegments);
@@ -184,8 +183,9 @@ class Helpers {
 		}
 		throw new \Exception(
 			"There was not possible to determinate Node.JS executable full path. \n".
-			"Try to add into your system config.ini section [debug] with this line: \n".
-			"`refresh.node = \"/your/custom/path/to/node\"`"
+			"Try to add directory with Node.JS executable into \$PATH environment variable or \n".
+			"try to add the directory into your system config.ini into section [debug] with this line: \n".
+			"`refresh.nodePath = \"/your/custom/path/to/node/directory\"`"
 		);
 	}
 	
