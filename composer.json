@@ -35,7 +35,7 @@
 	},
 	"extra": {
 		"compile": [{
-			"run": "@php-method MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanels\\ComposerScripts::Run"
+			"run": "@php-method MvcCore\\Ext\\Debugs\\Tracys\\RefreshPanels\\Instalation::Run"
 		}]
 	},
 	"minimum-stability": "dev"

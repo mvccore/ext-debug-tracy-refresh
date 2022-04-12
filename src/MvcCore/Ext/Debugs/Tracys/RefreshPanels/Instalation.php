@@ -13,25 +13,31 @@
 
 namespace MvcCore\Ext\Debugs\Tracys\RefreshPanels;
 
+use \MvcCore\Ext\Debugs\Tracys\RefreshPanels\Helpers;
+
 /**
  * Responsibility - install fresh Node.JS and client code via npm.
  */
-class ComposerScripts {
+class Instalation {
 	
 	/**
 	 * Remove previous npm code and install fresh content.
 	 * @return void
 	 */
 	public static function Run () {
-		$projectDir = realpath(__DIR__ . '/../../../../../..');
+
+		$nodePaths = Helpers::GetNodePaths();
+		var_dump($nodePaths);
+
+		$projectDir = realpath(dirname(__DIR__, 6));
 		$nodeModulesDirFp = $projectDir . DIRECTORY_SEPARATOR . 'node_modules';
 		$packageLockFp = $projectDir . DIRECTORY_SEPARATOR . 'package-lock.json';
-		$isWin = static::isWin();
+		$isWin = Helpers::isWin();
 		if (is_dir($nodeModulesDirFp)) {
 			$cmd = $isWin
 				? "rmdir /S /Q \"{$nodeModulesDirFp}\""
 				: "rm -rf \"{$nodeModulesDirFp}\"";
-			list($sysOut, $code) = static::system($cmd);
+			list($sysOut, $code) = Helpers::System($cmd);
 			var_dump([$sysOut, $code]);
 			// windows: ['', 0]
 		}
@@ -39,56 +45,27 @@ class ComposerScripts {
 			$cmd = $isWin
 				? "del /F /Q \"{$packageLockFp}\""
 				: "rm -f \"{$packageLockFp}\"";
-			list($sysOut, $code) = static::system($cmd);
+			list($sysOut, $code) = Helpers::System($cmd);
 			var_dump([$sysOut, $code]);
 			// windows: ['', 0]
 		}
 		
-		list($sysOut, $code) = static::system("npm -v");
-		var_dump([$sysOut, $code, $_SERVER]);
+		list($sysOut, $code) = Helpers::System("npm -v");
+		var_dump([$sysOut, $code, $_SERVER]); 
 		if ($code !== 0) {
 			$cmd = $isWin
 				? "where npm"
 				: "which npm";
-			list($sysOut, $code) = static::system($cmd);
+			list($sysOut, $code) = Helpers::System($cmd);
 			var_dump([$sysOut, $code]);
 		}
 		
 		$cmd = $isWin
 			? "call npm install"
 			: "npm install";
-		list($sysOut, $code) = static::system($cmd);
+		list($sysOut, $code) = Helpers::System($cmd);
 		var_dump([$sysOut, $code]);
 		// windows: ['added 18 packages, and audited 19 packages in 3s ... found 0 vulnerabilities', 0]
 	}
 	
-	/**
-	 * Return `TRUE` for Windows operating systems.
-	 * @return bool
-	 */
-	protected static function isWin () {
-		return mb_substr(mb_strtolower(PHP_OS), 0, 3) === 'win';
-	}
-
-	/**
-	 * Get system command output code and stdout.
-	 * @param  string      $cmd 
-	 * @param  string|NULL $dirPath 
-	 * @return [string, int]
-	 */
-	protected static function system ($cmd, $dirPath = NULL) {
-		if (!function_exists('system')) 
-			throw new \Exception('Function `system` is not allowed.');
-		$dirPathPresented = $dirPath !== NULL && mb_strlen($dirPath) > 0;
-		if ($dirPathPresented) {
-			$cwd = getcwd();
-			chdir($dirPath);
-		}
-		ob_start();
-		system($cmd . ' 2>&1', $code);
-		$sysOut = ob_get_clean();
-		if ($dirPathPresented) chdir($cwd);
-		return [trim($sysOut), $code];
-	}
-
 }

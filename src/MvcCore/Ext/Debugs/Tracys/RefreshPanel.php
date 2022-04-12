@@ -13,6 +13,8 @@
 
 namespace MvcCore\Ext\Debugs\Tracys;
 
+use \MvcCore\Ext\Debugs\Tracys\RefreshPanels\Helpers;
+
 /**
  * Responsibility - render panel to create websocket connection
  *                  with Node.JS on server side to monitor filesystem 
@@ -26,39 +28,7 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	 * @see http://php.net/manual/en/function.version-compare.php
 	 */
 	const VERSION = '5.0.0';
-
-	/**
-	 * Relative path to Client.js and Server.js in node_modules directory.
-	 * @var string
-	 */
-	const JS_NODE_MODULE_PATH = '/../../../../../node_modules/@mvccore/ext-debug-tracy-refresh-js/build';
-
-	/**
-	 * System config path to record in `[debug]` section 
-	 * for Node.JS websocket server port, default 
-	 * Node.JS websocket server port and Node.JS executable
-	 * full path (including node.exe).
-	 * @var array
-	 */
-	protected static $sysConfigProps = [
-		'portPath'		=> 'refresh.port',
-		'nodePath'		=> 'refresh.node',
-		'portDefault'	=> 9006,
-	];
-
-	/**
-	 * MvcCore CSP policy tool full class name.
-	 * @var string
-	 */
-	protected static $cspFullClassName = '\\MvcCore\\Ext\\Tools\\Csp';
-
-	/**
-	 * JS XMLHttpRequest GET param name to start background 
-	 * process with Node.JS WebSocket server to monitor file changes.
-	 * @var string
-	 */
-	protected static $xhrStartMonitoringParamName = '_tracy_panel_refresh_start';
-
+	
 
 	/**
 	 * Unique panel id.
@@ -124,21 +94,10 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	 */
 	protected $nonceAttr = '';
 
-	/**
-	 * Set system config path to record in `[debug]` section 
-	 * for Node.JS websocket server port and default 
-	 * Node.JS websocket server port.
-	 * @param  array $sysConfigProps 
-	 * @return array
-	 */
-	public static function SetSysConfigProps (array $sysConfigProps) {
-		return static::$sysConfigProps = $sysConfigProps;
-	}
-
 	public function __construct () {
 		$app = \MvcCore\Application::GetInstance();
 		if (
-			isset($_GET[static::$xhrStartMonitoringParamName]) &&
+			isset($_GET[Helpers::GetXhrStartMonitoringParamName()]) &&
 			$app->GetRequest()->GetMethod() === \MvcCore\IRequest::METHOD_POST
 		) {
 			$this->initWsServer($app);
@@ -167,17 +126,15 @@ class RefreshPanel implements \Tracy\IBarPanel {
 		} else {
 			try {
 				$this->initCtorPort();
-				$jsDir = $this->getJsDirFullPath();
-				$nodeExecFullPath = static::getNodeExecutableFullPath();
-				$nodeExecFullPath = str_replace('\\', '/', $nodeExecFullPath);
-				$nodeDirFullPath = str_replace('\\', '/', dirname($nodeExecFullPath));
-				list($sysOutput, $code) = static::system($nodeExecFullPath . ' -v', $jsDir);
+				$jsDir = Helpers::GetJsDirFullPath();
+				list($nodeDirFullPath, $nodeExecFullPath) = Helpers::GetNodePaths();
+				list($sysOutput, $code) = Helpers::System($nodeExecFullPath . ' -v', $jsDir);
 				if ($code !== 0 || !preg_match("#^v\d+\.\d+\.\d+$#", $sysOutput)) 
 					throw new \Exception($sysOutput);
 				$nodeVersion = preg_replace("#[^\d\.]#", '', $sysOutput);
 				if (version_compare($nodeVersion, '10.0.0', '<'))
 					throw new \Exception("Node version is too old: {$sysOutput}, min. required version is 10.0.0.");
-				list($sysOutput, $code) = static::system(
+				list($sysOutput, $code) = Helpers::System(
 					$nodeExecFullPath . ' -e "'
 						.'var subprocess=require(\'child_process\')'
 							.'.spawn('
@@ -235,19 +192,19 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	 */
 	protected function initCtorPort () {
 		$sysCfg = \MvcCore\Debug::GetSystemCfgDebugSection();
-		$cfgPortPathSegments = explode('.', static::$sysConfigProps['portPath']);
-		$cfgPortPathSegmentsCount = count($cfgPortPathSegments);
-		foreach ($cfgPortPathSegments as $index => $cfgPortPathSegment) {
-			if (!isset($sysCfg->{$cfgPortPathSegment})) 
+		$cfgPortSegments = explode('.', Helpers::GetSysConfigProp('port'));
+		$cfgPortSegmentsCount = count($cfgPortSegments);
+		foreach ($cfgPortSegments as $index => $cfgPortSegment) {
+			if (!isset($sysCfg->{$cfgPortSegment})) 
 				break;
-			if ($index + 1 === $cfgPortPathSegmentsCount) {
-				$this->port = $sysCfg->{$cfgPortPathSegment};
+			if ($index + 1 === $cfgPortSegmentsCount) {
+				$this->port = $sysCfg->{$cfgPortSegment};
 			} else {
-				$sysCfg = $sysCfg->{$cfgPortPathSegment};
+				$sysCfg = $sysCfg->{$cfgPortSegment};
 			}
 		}
 		if ($this->port === NULL)
-			$this->port = static::$sysConfigProps['portDefault'];
+			$this->port = Helpers::GetSysConfigProp('portDefault');
 	}
 
 	/**
@@ -258,8 +215,8 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	 * @return void
 	 */
 	protected function initCtorCsp (\MvcCore\IRequest $req, \MvcCore\IResponse $res) {
-		$cpsClass = static::$cspFullClassName;
-		$wsUrl = $this->getWsUrl($req, FALSE);
+		$cpsClass = Helpers::GetCspFullClassName();
+		$wsUrl = Helpers::GetWsUrl($this->port);
 		if (!class_exists($cpsClass)) {
 			/** @var \MvcCore\Ext\Tools\Csp $csp */
 			$csp = $cpsClass::GetInstance();
@@ -325,91 +282,6 @@ class RefreshPanel implements \Tracy\IBarPanel {
 		$this->defaultLocations[] = $this->appRoot;
 		$nonce = \Tracy\Helpers::getNonce();
 		$this->nonceAttr = $nonce ? ' nonce="' . \Tracy\Helpers::escapeHtml($nonce) . '"' : '';
-	}
-
-	/**
-	 * Return `TRUE` for Windows operating systems.
-	 * @return bool
-	 */
-	protected static function isWin () {
-		return mb_substr(mb_strtolower(PHP_OS), 0, 3) === 'win';
-	}
-
-	/**
-	 * Get system command output code and stdout.
-	 * @param  string      $cmd 
-	 * @param  string|NULL $dirPath 
-	 * @return [string, int]
-	 */
-	protected static function system ($cmd, $dirPath = NULL) {
-		if (!function_exists('system')) 
-			throw new \Exception('Function `system` is not allowed.');
-		$dirPathPresented = $dirPath !== NULL && mb_strlen($dirPath) > 0;
-		if ($dirPathPresented) {
-			$cwd = getcwd();
-			chdir($dirPath);
-		}
-		ob_start();
-		system($cmd . ' 2>&1', $code);
-		$sysOut = ob_get_clean();
-		if ($dirPathPresented) chdir($cwd);
-		return [trim($sysOut), $code];
-	}
-
-	/**
-	 * Loads Node.JS executable full path from system 
-	 * config or by `which` (`where`) system command.
-	 * @throws \Exception  There was not possible to determinate Node.JS executable full path.
-	 * @return string
-	 */
-	protected static function getNodeExecutableFullPath () {
-		$nodePath = NULL;
-		$sysCfg = \MvcCore\Debug::GetSystemCfgDebugSection();
-		$cfgNodePathSegments = explode('.', static::$sysConfigProps['nodePath']);
-		$cfgNodePathSegmentsCount = count($cfgNodePathSegments);
-		foreach ($cfgNodePathSegments as $index => $cfgNodePathSegment) {
-			if (!isset($sysCfg->{$cfgNodePathSegment})) 
-				break;
-			if ($index + 1 === $cfgNodePathSegmentsCount) {
-				$nodePath = $sysCfg->{$cfgNodePathSegment};
-			} else {
-				$sysCfg = $sysCfg->{$cfgNodePathSegment};
-			}
-		}
-		if ($nodePath !== NULL) 
-			return $nodePath;
-		$isWin = static::isWin();
-		$whichCmd = $isWin ? 'where' : 'which';
-		$nodeCli = $isWin ? 'node.exe' : 'node';
-		list($nodePath, $code) = static::system($whichCmd.' '.$nodeCli);
-		if ($code === 0) 
-			return $nodePath;
-		throw new \Exception(
-			"There was not possible to determinate Node.JS executable full path. \n".
-			"Try to add into your system config.ini section [debug] with this line: \n".
-			"`refresh.node = \"/your/custom/path/to/node\"`"
-		);
-	}
-
-	/**
-	 * Return absolute path to Client.js and Server.js in node_modules directory.
-	 * @return string
-	 */
-	protected function getJsDirFullPath () {
-		return str_replace('\\', '/', realpath(__DIR__ . static::JS_NODE_MODULE_PATH));
-	}
-
-	/**
-	 * Get Node.JS websocket server url.
-	 * @param  \MvcCore\IRequest $req 
-	 * @param  bool              $httpScheme 
-	 * @return string
-	 */
-	protected function getWsUrl ($req, $httpScheme) {
-		/*$scheme = $req->GetScheme();
-		if (!$httpScheme)
-			$scheme = $scheme === 'http:' ? 'ws:' : 'wss:';*/
-		return "ws://127.0.0.1:{$this->port}/";
 	}
 
 	/**
