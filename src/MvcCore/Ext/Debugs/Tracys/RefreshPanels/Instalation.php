@@ -11,64 +11,57 @@
  * @license		https://mvccore.github.io/docs/mvccore/5.0.0/LICENSE.md
  */
 
-namespace MvcCore\Ext\Debugs\Tracys\RefreshPanels;
+define('MVCCORE_APP_ROOT', str_replace('\\', '/', dirname(__DIR__, 9)));
 
 use \MvcCore\Ext\Debugs\Tracys\RefreshPanels\Helpers;
 
 /**
- * Responsibility - install fresh Node.JS and client code via npm.
+ * Remove previous npm code and install fresh content.
+ * @return void
  */
-class Instalation {
+call_user_func(function () {
 	
-	/**
-	 * Remove previous npm code and install fresh content.
-	 * @return void
-	 */
-	public static function Run () {
+	var_dump(defined('MVCCORE_APP_ROOT'));
+	var_dump(MVCCORE_APP_ROOT);
 
-		$req = \MvcCore\Application::GetInstance()->GetRequest();
-		$req->SetAppRoot(str_replace('\\', '/', dirname(__DIR__, 9)));
+	$nodePaths = Helpers::GetNodePaths();
+	var_dump($nodePaths);
 
-		$nodePaths = Helpers::GetNodePaths();
-		var_dump($nodePaths);
-
-		$projectDir = realpath(dirname(__DIR__, 6));
-		$nodeModulesDirFp = $projectDir . DIRECTORY_SEPARATOR . 'node_modules';
-		$packageLockFp = $projectDir . DIRECTORY_SEPARATOR . 'package-lock.json';
-		$isWin = Helpers::IsWin();
-		if (is_dir($nodeModulesDirFp)) {
-			$cmd = $isWin
-				? "rmdir /S /Q \"{$nodeModulesDirFp}\""
-				: "rm -rf \"{$nodeModulesDirFp}\"";
-			list($sysOut, $code) = Helpers::System($cmd);
-			//var_dump([$sysOut, $code]);
-			// windows: ['', 0]
-		}
-		if (file_exists($packageLockFp)) {
-			$cmd = $isWin
-				? "del /F /Q \"{$packageLockFp}\""
-				: "rm -f \"{$packageLockFp}\"";
-			list($sysOut, $code) = Helpers::System($cmd);
-			//var_dump([$sysOut, $code]);
-			// windows: ['', 0]
-		}
-		
-		list($sysOut, $code) = Helpers::System("npm -v");
-		var_dump([$sysOut, $code]); 
-		if ($code !== 0) {
-			$cmd = $isWin
-				? "where npm"
-				: "which npm";
-			list($sysOut, $code) = Helpers::System($cmd);
-			var_dump([$sysOut, $code]);
-		}
-		
+	$projectDir = realpath(dirname(__DIR__, 6));
+	$nodeModulesDirFp = $projectDir . DIRECTORY_SEPARATOR . 'node_modules';
+	$packageLockFp = $projectDir . DIRECTORY_SEPARATOR . 'package-lock.json';
+	$isWin = Helpers::IsWin();
+	if (is_dir($nodeModulesDirFp)) {
 		$cmd = $isWin
-			? "call npm install"
-			: "npm install";
+			? "rmdir /S /Q \"{$nodeModulesDirFp}\""
+			: "rm -rf \"{$nodeModulesDirFp}\"";
 		list($sysOut, $code) = Helpers::System($cmd);
-		var_dump([$sysOut, $code]);
-		// windows: ['added 18 packages, and audited 19 packages in 3s ... found 0 vulnerabilities', 0]
+		//var_dump([$sysOut, $code]);
+		// windows: ['', 0]
+	}
+	if (file_exists($packageLockFp)) {
+		$cmd = $isWin
+			? "del /F /Q \"{$packageLockFp}\""
+			: "rm -f \"{$packageLockFp}\"";
+		list($sysOut, $code) = Helpers::System($cmd);
+		//var_dump([$sysOut, $code]);
+		// windows: ['', 0]
 	}
 	
-}
+	list($sysOut, $code) = Helpers::System("npm -v");
+	var_dump([$sysOut, $code]); 
+	if ($code !== 0) {
+		$cmd = $isWin
+			? "where npm"
+			: "which npm";
+		list($sysOut, $code) = Helpers::System($cmd);
+		var_dump([$sysOut, $code]);
+	}
+	
+	$cmd = $isWin
+		? "call npm install"
+		: "npm install";
+	list($sysOut, $code) = Helpers::System($cmd);
+	var_dump([$sysOut, $code]);
+	// windows: ['added 18 packages, and audited 19 packages in 3s ... found 0 vulnerabilities', 0]
+});
