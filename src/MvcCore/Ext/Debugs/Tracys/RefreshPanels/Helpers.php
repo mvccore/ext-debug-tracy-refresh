@@ -154,16 +154,18 @@ class Helpers {
 	public static function GetNodePaths () {
 		$nodePath = NULL;
 		$sysCfg = \MvcCore\Debug::GetSystemCfgDebugSection();
-		if ($sysCfg !== NULL)
-		$cfgNodePathSegments = explode('.', static::GetSysConfigProp('nodePath'));
-		$cfgNodePathSegmentsCount = count($cfgNodePathSegments);
-		foreach ($cfgNodePathSegments as $index => $cfgNodePathSegment) {
-			if (!isset($sysCfg->{$cfgNodePathSegment})) 
-				break;
-			if ($index + 1 === $cfgNodePathSegmentsCount) {
-				$nodePath = $sysCfg->{$cfgNodePathSegment};
-			} else {
-				$sysCfg = $sysCfg->{$cfgNodePathSegment};
+		var_dump(["debug cfg section", $sysCfg]);
+		if ($sysCfg !== NULL) {
+			$cfgNodePathSegments = explode('.', static::GetSysConfigProp('nodePath'));
+			$cfgNodePathSegmentsCount = count($cfgNodePathSegments);
+			foreach ($cfgNodePathSegments as $index => $cfgNodePathSegment) {
+				if (!isset($sysCfg->{$cfgNodePathSegment})) 
+					break;
+				if ($index + 1 === $cfgNodePathSegmentsCount) {
+					$nodePath = $sysCfg->{$cfgNodePathSegment};
+				} else {
+					$sysCfg = $sysCfg->{$cfgNodePathSegment};
+				}
 			}
 		}
 		$isWin = static::IsWin();
