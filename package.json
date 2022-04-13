@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "@mvccore/ext-debug-tracy-refresh-js": "^5.0"
+    "@mvccore/ext-debug-tracy-refresh-js": "^5.0.2"
   }
 }
