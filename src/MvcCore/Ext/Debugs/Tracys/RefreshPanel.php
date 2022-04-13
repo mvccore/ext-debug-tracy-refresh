@@ -44,6 +44,13 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	protected $active = FALSE;
 
 	/**
+	 * Node.JS websocket server address, 
+	 * `$_SERVER['SERVER_NAME']` by default.
+	 * @var string|NULL
+	 */
+	protected $address = NULL;
+
+	/**
 	 * Node.JS websocket server port.
 	 * @var int|NULL
 	 */
@@ -109,15 +116,17 @@ class RefreshPanel implements \Tracy\IBarPanel {
 
 	public function __construct () {
 		$app = \MvcCore\Application::GetInstance();
+		$req = $app->GetRequest();
+		$get = & $req->GetGlobalCollection('get');
 		if (
-			isset($_GET[Helpers::GetXhrStartMonitoringParamName()]) &&
-			$app->GetRequest()->GetMethod() === \MvcCore\IRequest::METHOD_POST
+			isset($get[Helpers::GetXhrStartMonitoringParamName()]) &&
+			$req->GetMethod() === \MvcCore\IRequest::METHOD_POST
 		) {
-			$this->initWsServer($app);
+			$this->initWsServer($app, $req);
 		} else {
 			$app->AddPreSentHeadersHandler(
-				function (\MvcCore\IRequest $req, \MvcCore\IResponse $res) {
-					$this->initCtor($req, $res);
+				function (\MvcCore\IRequest $req, \MvcCore\IResponse $res) use ($app) {
+					$this->initCtor($app, $req, $res);
 				}, PHP_INT_MAX
 			);
 		}
@@ -127,9 +136,10 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	 * Start Node.JS WebSocket server to monitor file 
 	 * changes and send JSON response about it.
 	 * @param  \MvcCore\IApplication $app
+	 * @param  \MvcCore\IRequest     $req
 	 * @return void
 	 */
-	protected function initWsServer (\MvcCore\IApplication $app) {
+	protected function initWsServer (\MvcCore\IApplication $app, \MvcCore\IRequest $req) {
 		\Tracy\Debugger::enable(TRUE);
 		if (!\MvcCore\Debug::GetDebugging()) {
 			$result = [
@@ -138,7 +148,7 @@ class RefreshPanel implements \Tracy\IBarPanel {
 			];
 		} else {
 			try {
-				$this->initCtorPort();
+				$this->initCtorAddressAndPort($app, $req);
 				$jsDir = Helpers::GetJsDirFullPath();
 				list($nodeDirFullPath, $nodeExecFullPath) = Helpers::GetNodePaths();
 				list($sysOutput, $code) = Helpers::System($nodeExecFullPath . ' -v', $jsDir);
@@ -152,7 +162,7 @@ class RefreshPanel implements \Tracy\IBarPanel {
 						.'var subprocess=require(\'child_process\')'
 							.'.spawn('
 								.'\''.$nodeExecFullPath.'\','
-								.'[\''.$jsDir.'/Server.js\','.$this->port.'],'
+								.'[\''.$jsDir.'/Server.js\',\''.$this->address.'\',\''.$this->port.'\'],'
 								.'{detached:true,stdio:\'ignore\',cwd:\''.$nodeDirFullPath.'\'}'
 							.');'
 						.'subprocess.unref();'
@@ -184,40 +194,69 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	
 	/**
 	 * Initialize necesary panel properties before http headers are sent.
-	 * @param  \MvcCore\IRequest  $req 
-	 * @param  \MvcCore\IResponse $res 
+	 * @param  \MvcCore\IApplication $app 
+	 * @param  \MvcCore\IRequest     $req 
+	 * @param  \MvcCore\IResponse    $res 
 	 * @return void
 	 */
-	protected function initCtor (\MvcCore\IRequest $req, \MvcCore\IResponse $res) {
+	protected function initCtor (\MvcCore\IApplication $app, \MvcCore\IRequest $req, \MvcCore\IResponse $res) {
 		$this->active = (
 			$req->GetMethod() === \MvcCore\IRequest::METHOD_GET && 
 			$res->GetHeader('Location') === NULL &&
 			!$req->IsAjax()
 		);
 		if (!$this->active) return;
-		$this->initCtorPort();
+		$this->initCtorAddressAndPort($app, $req);
 		$this->initCtorCsp($req, $res);
 	}
 	
 	/**
-	 * Initialize Node.JS websocket server port from config or with default value. 
+	 * Initialize Node.JS websocket server address 
+	 * and port from config or with default value. 
+	 * @param  \MvcCore\IApplication $app 
+	 * @param  \MvcCore\IRequest     $req 
 	 * @return void
 	 */
-	protected function initCtorPort () {
-		$sysCfg = \MvcCore\Debug::GetSystemCfgDebugSection();
-		$cfgPortSegments = explode('.', Helpers::GetSysConfigProp('port'));
-		$cfgPortSegmentsCount = count($cfgPortSegments);
-		foreach ($cfgPortSegments as $index => $cfgPortSegment) {
-			if (!isset($sysCfg->{$cfgPortSegment})) 
+	protected function initCtorAddressAndPort (\MvcCore\IApplication $app, \MvcCore\IRequest $req) {
+		$debugClass = $app->GetDebugClass();
+		$sysCfg = $debugClass::GetSystemCfgDebugSection();
+		$this->port = $this->initCtorGetCfgRecord(
+			$sysCfg, 'port', Helpers::GetSysConfigProp('portDefault')
+		);
+		$defaultServerGlobalRecord = Helpers::GetSysConfigProp('addressDefault');
+		$server = $req->GetGlobalCollection('server');
+		$addressDefault = isset($server[$defaultServerGlobalRecord])
+			? $server[$defaultServerGlobalRecord]
+			: '127.0.0.1';
+		$this->address = $this->initCtorGetCfgRecord(
+			$sysCfg, 'address', $addressDefault
+		);
+	}
+
+	/**
+	 * Get address or port record from system 
+	 * config or get it's default values.
+	 * @param  \stdClass  $sysCfg
+	 * @param  string     $cfgProp 
+	 * @param  string|int $defaultValue 
+	 * @return string|int
+	 */
+	protected function initCtorGetCfgRecord ($sysCfg, $cfgProp, $defaultValue) {
+		$result = NULL;
+		$cfgSegments = explode('.', Helpers::GetSysConfigProp($cfgProp));
+		$cfgSegmentsCount = count($cfgSegments);
+		foreach ($cfgSegments as $index => $cfgSegment) {
+			if (!isset($sysCfg->{$cfgSegment})) 
 				break;
-			if ($index + 1 === $cfgPortSegmentsCount) {
-				$this->port = $sysCfg->{$cfgPortSegment};
+			if ($index + 1 === $cfgSegmentsCount) {
+				$result = $sysCfg->{$cfgSegment};
 			} else {
-				$sysCfg = $sysCfg->{$cfgPortSegment};
+				$sysCfg = $sysCfg->{$cfgSegment};
 			}
 		}
-		if ($this->port === NULL)
-			$this->port = Helpers::GetSysConfigProp('portDefault');
+		if ($result === NULL)
+			$result = $defaultValue;
+		return $result;
 	}
 
 	/**
@@ -229,7 +268,7 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	 */
 	protected function initCtorCsp (\MvcCore\IRequest $req, \MvcCore\IResponse $res) {
 		$cpsClass = Helpers::GetCspFullClassName();
-		$wsUrl = Helpers::GetWsUrl($this->port);
+		$wsUrl = Helpers::GetWsUrl($this->address, $this->port);
 		if (!class_exists($cpsClass)) {
 			/** @var \MvcCore\Ext\Tools\Csp $csp */
 			$csp = $cpsClass::GetInstance();

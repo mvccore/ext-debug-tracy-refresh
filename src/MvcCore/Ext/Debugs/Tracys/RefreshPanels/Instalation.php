@@ -32,8 +32,6 @@ call_user_func(function () {
 		list($sysOut, $code) = Helpers::System($cmd, $projectDir);
 		if ($code !== 0)
 			throw new \Exception($sysOut);
-		//var_dump([$sysOut, $code]);
-		// windows: ['', 0]
 	}
 	if (file_exists($packageLockFp)) {
 		$cmd = $isWin
@@ -42,8 +40,6 @@ call_user_func(function () {
 		list($sysOut, $code) = Helpers::System($cmd, $projectDir);
 		if ($code !== 0)
 			throw new \Exception($sysOut);
-		//var_dump([$sysOut, $code]);
-		// windows: ['', 0]
 	}
 	// Install node modules via npm:
 	list($nodeDirFullPath) = Helpers::GetNodePaths();
@@ -51,5 +47,4 @@ call_user_func(function () {
 	list($sysOut, $code) = Helpers::System($cmd, $projectDir);
 	if ($code !== 0)
 		throw new \Exception($sysOut);
-	// windows: ['added 18 packages, and audited 19 packages in 3s ... found 0 vulnerabilities', 0]
 });

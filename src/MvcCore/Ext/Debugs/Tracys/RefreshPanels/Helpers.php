@@ -32,8 +32,10 @@ class Helpers {
 	 * @var array
 	 */
 	protected static $sysConfigProps = [
+		'address'		=> 'refresh.address',
 		'port'			=> 'refresh.port',
 		'nodePath'		=> 'refresh.nodePath',
+		'addressDefault'=> 'SERVER_NAME',
 		'portDefault'	=> 9006,
 	];
 
@@ -117,11 +119,12 @@ class Helpers {
 	
 	/**
 	 * Get Node.JS websocket server url.
+	 * @param  string     $address
 	 * @param  string|int $port
 	 * @return string
 	 */
-	public static function GetWsUrl ($port) {
-		return "ws://127.0.0.1:{$port}/";
+	public static function GetWsUrl ($address, $port) {
+		return "ws://{$address}:{$port}/";
 	}
 
 	/**
