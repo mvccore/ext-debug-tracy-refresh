@@ -6,6 +6,9 @@
 
 MvcCore Debug Tracy Extension to to automatic refresh of current browser tab on selected directory changes.
 
+**THIS PACKAGE IS HIGHLY RECOMMENDED TO USE ONLY IN DEVELPMENT ENVIRONMENT!**
+
+
 ## Installation
 ```shell
 composer require mvccore/ext-debug-tracy-refresh
