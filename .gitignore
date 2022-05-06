@@ -58,4 +58,5 @@ Temporary Items
 /tests/vendor
 /tests/composer.lock
 composer.dev.json
+package-lock.json
 node_modules
