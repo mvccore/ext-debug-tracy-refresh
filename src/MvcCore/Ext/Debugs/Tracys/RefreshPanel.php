@@ -262,13 +262,14 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	/**
 	 * Initialize content security policy (if necessary)
 	 * for Node.JS web socket server address.
-	 * @param  \MvcCore\IRequest  $req 
-	 * @param  \MvcCore\IResponse $res 
+	 * @param  \MvcCore\Request  $req 
+	 * @param  \MvcCore\Response $res 
 	 * @return void
 	 */
 	protected function initCtorCsp (\MvcCore\IRequest $req, \MvcCore\IResponse $res) {
 		$cpsClass = Helpers::GetCspFullClassName();
 		$wsUrl = Helpers::GetWsUrl($this->address, $this->port);
+		/** @var \MvcCore\Response $res */
 		if (!class_exists($cpsClass)) {
 			/** @var \MvcCore\Ext\Tools\Csp $csp */
 			$csp = $cpsClass::GetInstance();
@@ -276,10 +277,12 @@ class RefreshPanel implements \Tracy\IBarPanel {
 			$res->SetHeader($csp->GetHeaderName(), $csp->GetHeaderValue());
 		} else {
 			$cspHeaderName = 'Content-Security-Policy';
-			$rawHeaderValue = " ".trim($res->GetHeader($cspHeaderName))." ";
+			$cspHeader = $res->GetHeader($cspHeaderName);
+			$rawHeaderValue = $cspHeader === NULL ? " " : " ".trim($cspHeader)." ";
 			$sections = ['connect', 'default'];
 			foreach ($sections as $section) {
-				if (preg_match_all("#^(.*)([\s;]+)({$section}\-src)(\s+)(.*)$#i", $rawHeaderValue, $sectionMatches)) {
+				$sectionPattern = "#^(.*)([\s;]+)({$section}\-src)(\s+)(.*)$#i";
+				if (preg_match_all($sectionPattern, $rawHeaderValue, $sectionMatches)) {
 					array_shift($sectionMatches);
 					$sectionMatches = array_map(function ($item) { return $item[0]; }, $sectionMatches);
 					$sectionMatches[3] = " $wsUrl ";
