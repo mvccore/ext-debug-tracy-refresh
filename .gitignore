@@ -52,11 +52,14 @@ Temporary Items
 .hgignore
 .hgtags
 
+composer.dev.json
+composer.dev.lock
+
 # Project files
 *.phpproj
+.vs
 *.phpproj.user
 /tests/vendor
 /tests/composer.lock
-composer.dev.json
 package-lock.json
 node_modules
