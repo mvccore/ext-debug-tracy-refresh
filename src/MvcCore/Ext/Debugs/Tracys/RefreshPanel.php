@@ -27,7 +27,7 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	 * Comparison by PHP function version_compare();
 	 * @see http://php.net/manual/en/function.version-compare.php
 	 */
-	const VERSION = '5.0.2';
+	const VERSION = '5.0.3';
 	
 
 	/**
@@ -277,19 +277,29 @@ class RefreshPanel implements \Tracy\IBarPanel {
 			$res->SetHeader($csp->GetHeaderName(), $csp->GetHeaderValue());
 		} else {
 			$cspHeaderName = 'Content-Security-Policy';
-			$cspHeader = $res->GetHeader($cspHeaderName);
-			$rawHeaderValue = $cspHeader === NULL ? " " : " ".trim($cspHeader)." ";
-			$sections = ['connect', 'default'];
-			foreach ($sections as $section) {
-				$sectionPattern = "#^(.*)([\s;]+)({$section}\-src)(\s+)(.*)$#i";
-				if (preg_match_all($sectionPattern, $rawHeaderValue, $sectionMatches)) {
-					array_shift($sectionMatches);
-					$sectionMatches = array_map(function ($item) { return $item[0]; }, $sectionMatches);
-					$sectionMatches[3] = " $wsUrl ";
-					$res->SetHeader($cspHeaderName, trim(implode("", $sectionMatches)));
-					break;
+			$cspHeaders = $res->GetHeader($cspHeaderName);
+			if (!is_array($cspHeaders)) $cspHeaders = [$cspHeaders];
+			$newHeaders = [];
+			foreach ($cspHeaders as $cspHeader) {
+				$rawHeaderValue = $cspHeader === NULL ? " " : " ".trim($cspHeader)." ";
+				$sections = ['connect', 'default'];
+				$sectionMathed = FALSE;
+				foreach ($sections as $section) {
+					$sectionPattern = "#^(.*)([\s;]+)({$section}\-src)(\s+)(.*)$#i";
+					if (preg_match_all($sectionPattern, $rawHeaderValue, $sectionMatches)) {
+						array_shift($sectionMatches);
+						$sectionMatches = array_map(function ($item) { return $item[0]; }, $sectionMatches);
+						$sectionMatches[3] = " $wsUrl ";
+						$newHeaders[] = trim(implode("", $sectionMatches));
+						$sectionMathed = TRUE;
+						break;
+					}
 				}
+				if (!$sectionMathed)
+					$newHeaders[] = $cspHeader;
+
 			}
+			$res->SetHeader($cspHeaderName, $newHeaders);
 		}
 	}
 
