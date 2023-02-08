@@ -119,12 +119,17 @@ class Helpers {
 	
 	/**
 	 * Get Node.JS websocket server url.
-	 * @param  string     $address
-	 * @param  string|int $port
+	 * @param  bool            $isSecure
+	 * @param  string          $address
+	 * @param  string|int|NULL $port
 	 * @return string
 	 */
-	public static function GetWsUrl ($address, $port) {
-		return "ws://{$address}:{$port}/";
+	public static function GetWsUrl ($isSecure, $address, $port) {
+		$scheme = $isSecure ? 'wss' : 'ws';
+		$portStr = '';
+		if ($port !== NULL && $port !== '') 
+			$portStr = ($port === 80 || $port === 443) ? '' : ':' . $port;
+		return "{$scheme}://{$address}{$portStr}/";
 	}
 
 	/**

@@ -268,7 +268,7 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	 */
 	protected function initCtorCsp (\MvcCore\IRequest $req, \MvcCore\IResponse $res) {
 		$cpsClass = Helpers::GetCspFullClassName();
-		$wsUrl = Helpers::GetWsUrl($this->address, $this->port);
+		$wsUrl = Helpers::GetWsUrl($req->IsSecure(), $this->address, $this->port);
 		/** @var \MvcCore\Response $res */
 		if (!class_exists($cpsClass)) {
 			/** @var \MvcCore\Ext\Tools\Csp $csp */
