@@ -52,8 +52,7 @@ Temporary Items
 .hgignore
 .hgtags
 
-composer.dev.json
-composer.dev.lock
+composer.dev.*
 
 # Project files
 *.phpproj
