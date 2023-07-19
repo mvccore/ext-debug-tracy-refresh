@@ -42,8 +42,22 @@ call_user_func(function () {
 			throw new \Exception($sysOut);
 	}
 	// Install node modules via npm:
-	list($nodeDirFullPath) = Helpers::GetNodePaths();
-	$cmd = $nodeDirFullPath . "/npm install";
+	list($nodeFullPath) = Helpers::GetNodePaths();
+	// Make sure PATH env variable contains node path:
+	$cmd = $isWin
+		? 'echo %PATH%'
+		: 'echo "$PATH"';
+	list($sysOut, $code) = Helpers::System($cmd, $projectDir);
+	if ($code !== 0)
+		throw new \Exception($sysOut);
+	if ($isWin) $sysOut = str_replace('\\', '/', $sysOut);
+	$pathDelim = $isWin ? ';' : ':';
+	$sysOut = $pathDelim . trim($sysOut, $pathDelim) . $pathDelim;
+	$nodeDirFullPath = str_replace('\\', '/', dirname($nodeFullPath));
+	$pathContainsNode = mb_strpos($sysOut, $pathDelim . $nodeDirFullPath . $pathDelim);
+	$cmd = $nodeDirFullPath . '/npm install "' . $projectDir . '" --loglevel verbose';
+	if (!$isWin && !$pathContainsNode)
+		$cmd = 'export PATH=' . $nodeDirFullPath . ':$PATH;' . $cmd;
 	list($sysOut, $code) = Helpers::System($cmd, $projectDir);
 	if ($code !== 0)
 		throw new \Exception($sysOut);
