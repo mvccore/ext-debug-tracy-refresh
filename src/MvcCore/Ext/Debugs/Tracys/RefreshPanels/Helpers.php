@@ -177,16 +177,20 @@ class Helpers {
 		}
 		$isWin = static::IsWin();
 		$nodeCli = $isWin ? 'node.exe' : 'node';
+		if ($nodePath !== NULL && !file_exists($nodePath))
+			$nodePath = NULL;
 		if ($nodePath === NULL) {
 			$whichCmd = $isWin ? 'where' : 'which';
 			list($whichNodePath, $code) = static::System($whichCmd.' '.$nodeCli);
 			if ($code === 0 && mb_strlen($whichNodePath) > 0) 
-				$nodePath = dirname($whichNodePath);
+				$nodePath = $whichNodePath;
 		}
 		if ($nodePath !== NULL) {
 			$nodePath = str_replace('\\', '/', $nodePath);
-			$nodeDirFullPath = rtrim($nodePath, '/');
-			$nodeExecFullPath = $nodeDirFullPath . '/' . $nodeCli;
+			if ($isWin) 
+				$nodePath = mb_strtoupper(mb_substr($nodePath, 0, 1)) . mb_substr($nodePath, 1);
+			$nodeDirFullPath = rtrim(str_replace('\\', '/', dirname($nodePath)), '/');
+			$nodeExecFullPath = $nodePath;
 			return [$nodeDirFullPath, $nodeExecFullPath];
 		}
 		throw new \Exception(
