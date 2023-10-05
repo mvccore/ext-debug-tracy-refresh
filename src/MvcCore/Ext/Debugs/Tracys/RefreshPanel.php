@@ -295,11 +295,12 @@ class RefreshPanel implements \Tracy\IBarPanel {
 						break;
 					}
 				}
-				if (!$sectionMathed)
+				if (!$sectionMathed && $cspHeader !== NULL)
 					$newHeaders[] = $cspHeader;
 
 			}
-			$res->SetHeader($cspHeaderName, $newHeaders);
+			if (count($newHeaders) > 0)
+				$res->SetHeader($cspHeaderName, $newHeaders);
 		}
 	}
 
