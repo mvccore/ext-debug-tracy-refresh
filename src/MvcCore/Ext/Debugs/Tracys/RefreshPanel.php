@@ -343,8 +343,8 @@ class RefreshPanel implements \Tracy\IBarPanel {
 	protected function initPanel () {
 		if ($this->panelUniqueId !== NULL) return;
 		$this->panelUniqueId = number_format(microtime(TRUE), 6, '', '');
-		$req = \MvcCore\Application::GetInstance()->GetRequest();
-		$this->appRoot = $req->GetAppRoot();
+		$app = \MvcCore\Application::GetInstance();
+		$this->appRoot = $app->GetPathAppRoot();
 		$this->defaultLocations[] = $this->appRoot;
 		$this->clientJsFullPath = Helpers::GetJsDirFullPath() . '/Client.js';
 		$this->startMonitoringParamName = Helpers::GetXhrStartMonitoringParamName();
