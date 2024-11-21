@@ -38,5 +38,6 @@
 			"run": "@php-script ./src/MvcCore/Ext/Debugs/Tracys/RefreshPanels/Instalation.php"
 		}]
 	},
-	"minimum-stability": "dev"
+	"minimum-stability": "dev",
+	"prefer-stable": true
 }
