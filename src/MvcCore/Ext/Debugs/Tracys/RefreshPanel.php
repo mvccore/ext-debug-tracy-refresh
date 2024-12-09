@@ -348,7 +348,9 @@ class RefreshPanel implements \Tracy\IBarPanel {
 		$this->defaultLocations[] = $this->appRoot;
 		$this->clientJsFullPath = Helpers::GetJsDirFullPath() . '/Client.js';
 		$this->startMonitoringParamName = Helpers::GetXhrStartMonitoringParamName();
-		$nonce = \Tracy\Helpers::getNonce();
+		$nonce = version_compare(\Tracy\Debugger::Version, '2.10.8', '>=')
+			? \Tracy\Helpers::getNonceAttr()
+			: \Tracy\Helpers::getNonce();
 		$this->nonceAttr = $nonce ? ' nonce="' . \Tracy\Helpers::escapeHtml($nonce) . '"' : '';
 	}
 
